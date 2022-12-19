@@ -7,12 +7,21 @@ import makeBlockie from "ethereum-blockies-base64";
 const Message = (props) => {
   const { messageSender, messageReceiver, message } = props;
 
-  const messageContent = message.name?.message;
-  const messageSenderLower = message.name?.sender;
-  const messageDate = message.name?.createdAt;
-  const messageImage = message.name?.image;
+  console.log("messageSender:")
+  console.log(messageSender)
 
-  const isSender = messageSender === messageSenderLower;
+  console.log("messageReceiver:")
+  console.log(messageReceiver)
+
+  console.log("message:")
+  console.log(message)
+
+
+  const messageContent = message?.Message;
+  const messageDate = message?.Created._seconds * 1000;
+  const messageImage = message?.ImageLinks[0];
+
+  const isSender = message?.MessageSender === messageSender.toLowerCase();
   const truncateReceiverAddress = messageReceiver
     ? messageReceiver.slice(0, 5) + "..." + messageReceiver.slice(-4)
     : "";

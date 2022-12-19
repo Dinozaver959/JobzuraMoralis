@@ -7,15 +7,14 @@ import makeBlockie from "ethereum-blockies-base64";
 const Message = (props) => {
   const { messageSender, messageReceiver, message } = props;
 
-  const messageContent = message.name?.message;
-  const messageSenderLower = message.name?.sender;
-  const messageDate = message.name?.createdAt;
-  const messageImage = message.name?.image;
+  const messageContent = message?.Message;
+  const messageDate = message?.Created._seconds * 1000;
+  const messageImage = message.ImageLinks.ArrayValue?.values[0];
+  // const messageImage = message.ImageLinks.ArrayValue ? message.ImageLinks.ArrayValue.values[0] : "";
 
-  const isSender = messageSender === messageSenderLower;
-  const truncateReceiverAddress = messageReceiver
-    ? messageReceiver.slice(0, 5) + "..." + messageReceiver.slice(-4)
-    : "";
+  const isSender = message?.MessageSender === messageSender.toLowerCase();
+  const truncateReceiverAddress = messageReceiver ? messageReceiver.slice(0, 5) + "..." + messageReceiver.slice(-4) : "";
+
 
   return (
     <div className={`chatMsg ${isSender ? "msgMine" : "msgOpposite"}`}>

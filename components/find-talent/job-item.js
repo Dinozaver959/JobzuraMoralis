@@ -12,25 +12,19 @@ function JobItem(props) {
   const id = props.item.name?.JobId;
   const seller = props.item.name?.Seller;
   
-  const truncateSeller =  seller
+  const truncateSeller =  seller 
   ? seller.slice(0, 5) + "..." + seller.slice(-4)
   : "";
-  let rating = props.item.name?.Rating;
 
-  if (rating === undefined || rating === null) {
-    rating = 0;
+  const sumOfRatings = props.item.name.RatingsSum;
+  const RatingsCounter = props.item.name.RatingsCounter;
+  var averageRating = 0;
+  if(sumOfRatings && sumOfRatings != 0 && RatingsCounter && RatingsCounter != 0){
+    averageRating = sumOfRatings / RatingsCounter;
   }
 
-  let averageRating = 0;
-  if (rating.length > 0) {
-    let total = 0;
-    for (let i = 0; i < rating.length; i++) {
-      total += rating[i];
-    }
-    averageRating = total / rating.length;
-  }
-
-  const numberOfReviews = rating.length;
+  // round to 1 decimal
+  averageRating = Math.round(averageRating * 10) / 10; 
 
   const truncate = (str, n) => {
     return str?.length > n ? str.substr(0, n - 1) + "..." : str;
@@ -97,7 +91,7 @@ function JobItem(props) {
                   </div>
                 </div>
                 <div className="gigTotalReviews">
-                  ({rating === 0 ? "0 Review" : numberOfReviews})
+                  ({RatingsCounter === 0 ? "0 Review" : RatingsCounter})
                 </div>
               </div>
               <div className="gigPrice">{price} {currency}</div>

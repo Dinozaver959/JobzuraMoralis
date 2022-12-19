@@ -52,17 +52,16 @@ async function GetUserMessagesPair(sender, receiver){
   var concatedAddress;
 
   if(sender.localeCompare(receiver) == -1){
-    concatedAddress = sender + receiver;
+    concatedAddress = sender + "_" + receiver;
   } else {
-    concatedAddress = receiver + sender;
+    concatedAddress = receiver + "_"  + sender;
   }
 
   console.log("concatedAddress: " + concatedAddress);
 
+  const res = await admin.firestore().collection('messages').doc('messages').collection(concatedAddress).get();
+  const list = res.docs.map(doc => doc.data());
 
-  const contract = await admin.firestore().collection('messages').doc(concatedAddress).get();
-  console.log(contract);
-  console.log(contract['_fieldsProto']);
-  return contract['_fieldsProto'];
-
+  console.log(list);
+  return list;
 }

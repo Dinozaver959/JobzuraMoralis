@@ -11,7 +11,7 @@ const UserReviews = (props) => {
   const stars = Array(numberOfStars).fill(0);
 
   const publicReviews = userReviews?.map((review, index) => {
-    if (review.name.Private.includes("false")) {
+    if (review.name.PrivateReview.includes("false")) {
       return (
         <UserReview
           key={index}
@@ -60,19 +60,6 @@ const UserReviews = (props) => {
     oneStarRating
   ).toFixed(1);
 
-  if (5 <= totalRating && totalRating > 4.9) {
-    numberOfStars = 5;
-  } else if (4 <= totalRating && totalRating < 4.9) {
-    numberOfStars = 4;
-  } else if (3 <= totalRating && totalRating < 3.9) {
-    numberOfStars = 3;
-  } else if (2 <= totalRating && totalRating < 2.9) {
-    numberOfStars = 2;
-  } else if (1 <= totalRating && totalRating < 1.9) {
-    numberOfStars = 1;
-  } else {
-    numberOfStars = 0;
-  }
 
   const fiveStarPercentage = ((fiveStar / ratings?.length) * 100).toFixed(0);
   const fourStarPercentage = ((fourStar / ratings?.length) * 100).toFixed(0);
@@ -96,11 +83,11 @@ const UserReviews = (props) => {
   const sortReviews = (selectedOption) => {
     // if (selectedOption?.value === "latest") {
     //   return userReviews.sort((a, b) => {
-    //     return new Date(a.name.createdAt) - new Date(b.name.createdAt);
+    //     return new Date(a.name.Created._seconds * 1000) - new Date(b.name.Created._seconds * 1000);
     //   });
     // } else if (selectedOption?.value === "oldest") {
     //   return userReviews.sort((a, b) => {
-    //     return new Date(b.name.createdAt) - new Date(a.name.createdAt);
+    //     return new Date(b.name.Created._seconds * 1000) - new Date(a.name.Created._seconds * 1000);
     //   });
     // } else if (selectedOption?.value === "highest") {
     //   return userReviews.sort((a, b) => {
@@ -111,8 +98,8 @@ const UserReviews = (props) => {
       return filterPublicReviews
         .sort((a, b) => {
           return (
-            new Date(a.props.review.name.createdAt) -
-            new Date(b.props.review.name.createdAt)
+            new Date(a.props.review.name.Created._seconds * 1000) -
+            new Date(b.props.review.name.Created._seconds * 1000)
           );
         })
         .reverse();
@@ -120,8 +107,8 @@ const UserReviews = (props) => {
       return filterPublicReviews
         .sort((a, b) => {
           return (
-            new Date(b.props.review.name.createdAt) -
-            new Date(a.props.review.name.createdAt)
+            new Date(b.props.review.name.Created._seconds * 1000) -
+            new Date(a.props.review.name.Created._seconds * 1000)
           );
         })
         .reverse();
@@ -148,7 +135,7 @@ const UserReviews = (props) => {
   const sortedReviews = sortReviews(selectedOption);
 
   const filteredReviews = userReviews?.map((review) => {
-    return review.name.Private;
+    return review.name.PrivateReview;
   });
 
   const filteredReviewsWithoutPrivate = filteredReviews?.includes("true");
@@ -174,7 +161,7 @@ const UserReviews = (props) => {
                 <FaStar
                   key={index}
                   size={18}
-                  className={index < numberOfStars ? "activeStar" : "disableStar"}
+                  className={index < (Math.round(totalRating)) ? "activeStar" : "disableStar"}
                   style={{ marginRight: 5 }}
                 />
               );

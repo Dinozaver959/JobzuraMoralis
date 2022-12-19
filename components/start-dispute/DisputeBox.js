@@ -9,14 +9,15 @@ import {StartDispute_Moralis} from "../../JS/local_web3_Moralis";
 import Moment from "react-moment";
 import Image from "next/image";
 import makeBlockie from "ethereum-blockies-base64";
-import { useMoralis } from "react-moralis";
 import DisputeMessage from "./DisputeMessage";
 import useSWR, { useSWRConfig } from "swr";
+import axios from "axios";
+import { SignMessageWithAlias } from "../../JS/auth/messageSigning";
+import { CheckAndCreateAlias } from "../../JS/auth/AliasAuthentication";
 
 const fetcher = async (...args) => fetch(...args).then((res) => res.json());
 
 const DisputeBox = (props) => {
-  const { Moralis } = useMoralis();
   const { contractDetails, currentAccount } = props;
   const lowerCaseCurrentAccount = currentAccount?.toLowerCase();
   const filePickerRef = useRef(null);
@@ -24,12 +25,15 @@ const DisputeBox = (props) => {
   const [message, setMessage] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFilePOST, setSelectedFilePOST] = useState(null);
 
   const isDisabled = !message.trim() && !selectedFile;
 
   const Seller = contractDetails?.SellerWallet?.stringValue;
   const truncateBuyer = lowerCaseCurrentAccount?.substring(0, 6) + "..." + lowerCaseCurrentAccount?.substring(38, 42);
   
+  const contractID = contractDetails?.ChainId?.stringValue + "_" + contractDetails?.Index?.stringValue;
+
   const TimeToDeliver = contractDetails?.TimeToDeliver?.stringValue;
   const createdAt = contractDetails?.createdAt?.stringValue;
   const date = new Date(createdAt);
@@ -40,7 +44,8 @@ const DisputeBox = (props) => {
   const messageReceiver = Seller?.toLowerCase();
   const { mutate } = useSWRConfig();
   const { data: messages, error } = useSWR(
-    `/api/get/MyDisputeMessages?sender=${messageSender}&receiver=${messageReceiver}`,
+    //`/api/get/MyDisputeMessages?sender=${messageSender}&receiver=${messageReceiver}`,
+    `/api/V2-Firebase/get/MyMessagesDispute?contractID=${contractID}`,
     fetcher,
     )
 
@@ -61,25 +66,18 @@ const DisputeBox = (props) => {
       reader.onload = (readerEvent) => {
         setSelectedFile(readerEvent.target.result);
       };
+      setSelectedFilePOST(e.target.files[0]);
       filePickerRef.current.value = "";
     };
-
-    const createReceiver = async () => {
-    const Users = Moralis.Object.extend("Users");
-    const query = new Moralis.Query(Users);
-    query.equalTo("userAddress", messageReceiver);
-    const results = await query.find();
-    if (results.length === 0) {
-      const user = new Users();
-      user.set("userAddress", messageReceiver);
-      await user.save();
-    }
-  };
 
   const sendMessage = async (e) => {
     e.preventDefault();
 
     if (message.length > 0) {
+
+
+
+      /*
       const Messages = Moralis.Object.extend("DisputeMessages");
       const messageObject = new Messages();
 
@@ -89,11 +87,55 @@ const DisputeBox = (props) => {
       messageObject.set("image", selectedFile);
 
       await messageObject.save();
+      */
+
+
+      const res = await CheckAndCreateAlias();
+      if(res == false){return false;} 
+
+      // create a formData and send to POST API
+      var formData = new FormData();
+      //const connectedAddress = (await GetWallet_NonMoralis())[0];
+
+      const signedMessage_sender = await SignMessageWithAlias(messageSender);
+      formData.append("address", signedMessage_sender.address);
+      formData.append("message_sender", signedMessage_sender.message);
+      formData.append("signature_sender", signedMessage_sender.signature);
+  
+      const signedMessage_receiver = await SignMessageWithAlias(messageReceiver);
+      formData.append("message_receiver", signedMessage_receiver.message);
+      formData.append("signature_receiver", signedMessage_receiver.signature);
+
+      const signedMessage_message = await SignMessageWithAlias(message);
+      formData.append("message_message", signedMessage_message.message);
+      formData.append("signature_message", signedMessage_message.signature);
+
+
+      // APPEND CONTRACT_ID
+      const signedMessage_contractID = await SignMessageWithAlias(contractID);
+      formData.append("message_contractID", signedMessage_contractID.message);
+      formData.append("signature_contractID", signedMessage_contractID.signature);
+
+
+      formData.append(`file0`, selectedFilePOST); // 1 img only
+      
+    
+      axios.post("/api/V2-Firebase/post/saveMessageDispute", formData)
+      .then((res) => {
+        if (res.status == 201 ) console.log("data successfully updated!");
+      })
+      .catch((err) => {
+        console.log("data profile failed to update ...");
+        console.log(err);
+      });
+
+
       setMessage("");
       setSelectedFile(null);
+      setSelectedFilePOST(null);
 
-      await createReceiver();
-      mutate(`/api/get/MyDisputeMessages?sender=${messageSender}&receiver=${messageReceiver}`);
+      // mutate(`/api/get/MyDisputeMessages?sender=${messageSender}&receiver=${messageReceiver}`);
+      mutate(`/api/V2-Firebase/get/MyMessagesDispute?contractID=${contractID}`);
     }
   };
 
@@ -121,7 +163,7 @@ const DisputeBox = (props) => {
   return (
     <div className="disputeBox">
       <div className="disputeBoxHeader">
-        <h3>Contract #{contractDetails.ChainId?.stringValue + "_" + contractDetails.Index?.stringValue}</h3>
+        <h3>Contract #{contractID}</h3>
         <div className="disputeBoxHeaderRight">
           <Link href={`/orders`}>
             <button>
@@ -169,6 +211,10 @@ const DisputeBox = (props) => {
           </div>
 
           <div className="disputeBoxChatBody">
+
+
+            {/* 
+
             <div className="disputeBoxChatBodyHeader">
               <span>The dispute is open due to :</span>
               <h4>Delivery time is over</h4>
@@ -179,6 +225,11 @@ const DisputeBox = (props) => {
               <div className="disputeBoxChatBodyImage"></div>
               <div className="disputeBoxChatBodyImage"></div>
             </div>
+            
+            */}
+
+
+
           </div>
         </div>
         <div className="chatboxContainer">

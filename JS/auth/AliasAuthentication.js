@@ -10,28 +10,28 @@ async function SendMessage(signedMessage, apiPath){
   formData.append("signature", signedMessage.signature);
   formData.append("address", signedMessage.address);
 
-  axios.post(apiPath, formData)
+  await axios.post(apiPath, formData)
   .then((res) => {
 
-    console.log(`res.status: ${res.status}`);
+    console.log(`res.status for SendMessage: ${res.status}  - POST API`);
 
-    if (res.status == 240){
-      // Alias is not in the DB -> remove Alias from local storage
-      RemoveAlias(signedMessage.address) // value is dummy for now, but otherwise we will need the Original Address
-      console.log("res.status == 240, removing alias from local storage...")
-    }
+    //if (res.status == 240){
+    //  Alias is not in the DB -> remove Alias from local storage
+    //  RemoveAlias(signedMessage.address) // value is dummy for now, but otherwise we will need the Original Address
+    //  console.log("res.status == 240, removing alias from local storage...")
+    //}
     
-    if (res.status == 201 ) console.log("signedMessage message received!");
-    this.fetchExtrashift();
-    return true;
-
+    return (res.status == 201 ) ? true : false;
   })
   .catch((err) => {
-    console.log("failure...");
+    console.log("failure... in SendMessage  - POST API");
+    console.log(err);
     return false;
   });
 
+  console.log("finished the SendMessage  - POST API");
   return true;
+
 }
 
 async function SignWithAliasAndSend(message, apiPath){
@@ -49,8 +49,10 @@ async function SignCustom(message){
 
 async function SignAndSend(message){
   const signedMessage = await SignMessage(message);
-  if(!signedMessage){return false;}
-  return await SendMessage(signedMessage, "/api/authentication/saveAliasToDB");
+  if(!signedMessage){console.log("!signedMessage - SignAndSend"); return false;}
+
+  // return await SendMessage(signedMessage, "/api/authentication/saveAliasToDB");
+  return await SendMessage(signedMessage, "/api/V2-Firebase/authentication/saveAliasToDB"); 
 }
 
 
@@ -71,7 +73,7 @@ export async function CheckAndCreateAlias(){
 
     // sign with MM and send to BE - on BE save the Alias, OrgWallet combo to the DB
     const success = await SignAndSend(aliases.public);                                                    
-    console.log(`success: ${success}`);
+    console.log(`success: ${success} - CheckAndCreateAlias`);
 
     // if no positive reply (or user did not sign) --- remove the alias from local storage
     if(!success){

@@ -27,11 +27,12 @@ apiRoute.post(async (req, res) => {
 
   const address = DOMPurify.sanitize(req.body.address[0].toString());
 
+  const contractID = ValidateAndReturnMessage(address, req.body.message_contractID[0].toString(), req.body.signature_contractID[0].toString()).toLowerCase();
   const sender = ValidateAndReturnMessage(address, req.body.message_sender[0].toString(), req.body.signature_sender[0].toString()).toLowerCase();
   const receiver = ValidateAndReturnMessage(address, req.body.message_receiver[0].toString(), req.body.signature_receiver[0].toString()).toLowerCase();
   const message = ValidateAndReturnMessage(address, req.body.message_message[0].toString(), req.body.signature_message[0].toString());
 
-  if(AnyEmpty([sender, receiver, message])){
+  if(AnyEmpty([contractID, sender, receiver, message])){
     res.status(420).end("not all signatures are valid");
   }
 
@@ -53,6 +54,7 @@ apiRoute.post(async (req, res) => {
   //                                     The main part
   //------------------------------------------------------------------------------------------------
 
+  console.log(`contractID: ${contractID}`)
   console.log(`sender: ${sender}`)
   console.log(`receiver: ${receiver}`)
   console.log(`message: ${message}`)
@@ -82,11 +84,7 @@ apiRoute.post(async (req, res) => {
 
 
 
-  await SaveMessageToFirebaseDB(sender, receiver, message, imageLinks);
-
-  await UpdateLastMessage(sender, receiver, message);
-
-  await UpdateMessageList(sender, receiver);
+  await SaveMessageDisputeToFirebaseDB(contractID, sender, receiver, message, imageLinks);
 
   res.status(201).end("Message saved to DB");
 })
@@ -102,20 +100,12 @@ export default apiRoute
 
 
 
-async function SaveMessageToFirebaseDB(sender, receiver, message, imageLinks){
+async function SaveMessageDisputeToFirebaseDB(contractID, sender, receiver, message, imageLinks){
 
-  console.log("SaveMessageToFirebaseDB...");
-  var concatedAddress;
-
-  if(sender.localeCompare(receiver) == -1){
-    concatedAddress = sender + "_" + receiver;
-  } else {
-    concatedAddress = receiver + "_" + sender;
-  }
-
-  console.log("concatedAddress: " + concatedAddress);
+  console.log("SaveMessageDisputeToFirebaseDB...");
 
   const Message = {
+    ContractID: contractID,
     MessageSender: sender,
     MessageReceiver: receiver,
     Message: message,
@@ -124,38 +114,8 @@ async function SaveMessageToFirebaseDB(sender, receiver, message, imageLinks){
   }
   
   const epoch = new Date().getTime();
-  await admin.firestore().collection('messages').doc('messages').collection(`${concatedAddress}`).doc(`${epoch}`).set(Message, { merge: false });
+  await admin.firestore().collection('messagesDispute').doc(contractID).collection(contractID).doc(`${epoch}`).set(Message, { merge: false });
 
-  console.log("SaveMessageToFirebaseDB  -  DONE");
-}
-
-
-async function UpdateLastMessage(sender, receiver, message){
-
-  console.log("UpdateLastMessage...");
-
-  const Message = {
-    LastMessage: message,
-    Created: new Date(),
-    MessageSender: sender,
-    MessageReceiver: receiver,
-  }
-
-  // update Last Message
-  await admin.firestore().collection('messages').doc(sender).collection(sender).doc(receiver).set(Message, { merge: true });
-  await admin.firestore().collection('messages').doc(receiver).collection(receiver).doc(sender).set(Message, { merge: true });
-
-  console.log("UpdateLastMessage  -  DONE");
-}
-
-
-async function UpdateMessageList(sender, receiver){
-
-  console.log("UpdateMessageList...");
-
-  await admin.firestore().collection('messages').doc("--messagesList--").update({[sender] : admin.firestore.FieldValue.arrayUnion(receiver)});
-  await admin.firestore().collection('messages').doc("--messagesList--").update({[receiver] : admin.firestore.FieldValue.arrayUnion(sender)});
-
-  console.log("UpdateMessageList  -  DONE");
+  console.log("SaveMessageDisputeToFirebaseDB  -  DONE");
 }
 

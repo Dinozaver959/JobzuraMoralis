@@ -1,4 +1,4 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useState } from "react";
 import {
   CreateEscrow_Moralis,
   GetWallet_NonMoralis,
@@ -7,6 +7,7 @@ import {
 import { sha256 } from "js-sha256";
 import { useRouter } from "next/router.js";
 import { useQuery } from "react-query";
+import { Tab, Tabs, TabList, TabPanel } from "react-tabs";
 import axios from "axios";
 import Image from "next/image";
 import makeBlockie from "ethereum-blockies-base64";
@@ -29,6 +30,8 @@ function JobDetails() {
   const router = useRouter();
   const jobID = router.query.jobID;
 
+  const [tabIndex, setTabIndex] = useState(0);
+
   const fetchJobDetails = async (jobID) => {
     const jobDetails = await axios.get(`/api/V2-Firebase/get/Job?JobID=${jobID}`);
     return jobDetails.data;
@@ -48,58 +51,42 @@ function JobDetails() {
   const jobTitle = jobDetails[0]?.name.Title.stringValue;
   const jobImage = jobDetails[0]?.name.ImageLinks?.arrayValue.values;
   const jobDescription = jobDetails[0]?.name.Description.stringValue;
-  const jobTimeToDeliver = jobDetails[0]?.name.TimeToDeliver.stringValue;
-  const jobPrice = jobDetails[0]?.name.Price.stringValue;
-  const jobCurrency = jobDetails[0].name.CurrencyTicker.stringValue;
+  
+  const jobPriceBasic = jobDetails[0]?.name.Price.stringValue;
+  const jobCurrencyBasic = jobDetails[0].name.CurrencyTicker.stringValue;
+  const jobTimeToDeliverBasic = jobDetails[0]?.name.TimeToDeliver.stringValue;
+  const jobCustomTimeToDeliverBasic = jobDetails[0]?.name.CustomTimeToDeliver.stringValue;
+  const jobDescriptionBasic = jobDetails[0]?.name.DescriptionBasic.stringValue;
+
+  const jobPriceStandard = jobDetails[0]?.name.PriceStandard.stringValue;
+  const jobCurrencyStandard = jobDetails[0].name.CurrencyTickerStandard.stringValue;
+  const jobTimeToDeliverStandard = jobDetails[0]?.name.TimeToDeliverStandard.stringValue;
+  const jobCustomTimeToDeliverStandard = jobDetails[0]?.name.CustomTimeToDeliverStandard.stringValue;
+  const jobDescriptionStandard = jobDetails[0]?.name.DescriptionStandard.stringValue;
+
+  const jobPricePremium = jobDetails[0]?.name.PricePremium.stringValue;
+  const jobCurrencyPremium = jobDetails[0].name.CurrencyTickerPremium.stringValue;
+  const jobTimeToDeliverPremium = jobDetails[0]?.name.TimeToDeliverPremium.stringValue;
+  const jobCustomTimeToDeliverPremium = jobDetails[0]?.name.CustomTimeToDeliverPremium.stringValue;
+  const jobDescriptionPremium = jobDetails[0]?.name.DescriptionPremium.stringValue;
+  
   const jobSellerAddressTruncated = jobSellerAddress?.substring(0, 6) + "..." + jobSellerAddress?.substring(36, 42);
 
-  const ratingArray = jobDetails[0]?.name.Rating.arrayValue;
-  const numberOfRatings = ratingArray?.values?.length;
+  const sumOfRatings = jobDetails[0]?.name?.RatingsSum.integerValue;
+  const RatingsCounter = jobDetails[0]?.name?.RatingsCounter.integerValue;
 
-  if (ratingArray?.length > 0) {
-    var ratingAverage = (
-      ratingArray.reduce((a, b) => a + b, 0) / ratingArray.length
-    ).toFixed(1);
+  var averageRating = 0;
+  if(sumOfRatings && sumOfRatings != 0 && RatingsCounter && RatingsCounter != 0){
+    averageRating = sumOfRatings / RatingsCounter;
   }
+
+  // round to 1 decimal
+  averageRating = Math.round(averageRating * 10) / 10; 
 
   let numberOfStars = 5;
   const stars = Array(numberOfStars).fill(0);
 
-  const fiveStar = ratingArray?.values?.filter((rating) => rating.integerValue == 5);
-  const fourStar = ratingArray?.values?.filter((rating) => rating.integerValue == 4);
-  const threeStar = ratingArray?.values?.filter((rating) => rating.integerValue == 3);
-  const twoStar = ratingArray?.values?.filter((rating) => rating.integerValue == 2);
-  const oneStar = ratingArray?.values?.filter((rating) => rating.integerValue == 1);
 
-  const fiveStarRating = (fiveStar?.length / numberOfRatings) * 5;
-  const fourStarRating = (fourStar?.length / numberOfRatings) * 4;
-  const threeStarRating = (threeStar?.length / numberOfRatings) * 3;
-  const twoStarRating = (twoStar?.length / numberOfRatings) * 2;
-  const oneStarRating = (oneStar?.length / numberOfRatings) * 1;
-
-  const totalRating = (
-    fiveStarRating +
-    fourStarRating +
-    threeStarRating +
-    twoStarRating +
-    oneStarRating
-  ).toFixed(1);
-
-  if (5 <= totalRating && totalRating > 4.9) {
-    numberOfStars = 5;
-  } else if (4 <= totalRating && totalRating < 4.9) {
-    numberOfStars = 4;
-  } else if (3 <= totalRating && totalRating < 3.9) {
-    numberOfStars = 3;
-  } else if (2 <= totalRating && totalRating < 2.9) {
-    numberOfStars = 2;
-  } else if (1 <= totalRating && totalRating < 1.9) {
-    numberOfStars = 1;
-  } else {
-    numberOfStars = 0;
-  }
-
-  
   if (data) {
     return (
       <Fragment>
@@ -129,15 +116,15 @@ function JobDetails() {
                       <FaStar
                         key={index}
                         size={18}
-                        className={index < numberOfStars ? "activeStar" : "disableStar"}
+                        className={index < (Math.round(averageRating)) ? "activeStar" : "disableStar"}
                         style={{ marginRight: 5 }}
                       />
                     );
                   })}
                 </div>
                 <h4 className="ratingCounts">
-                  {totalRating === "NaN" ? "No Ratings" : totalRating}(
-                  {ratingArray?.values?.length})
+                  {RatingsCounter === "NaN" ? "No Ratings" : averageRating}(
+                  {RatingsCounter})
                 </h4>
               </div>
             </div>
@@ -167,55 +154,149 @@ function JobDetails() {
 
           {/* right side */}
           <div className="buySection">
-            <div className="buySectionContainer">
-              <h1>{jobPrice} {jobCurrency}</h1>
-              <h3>{jobTimeToDeliver} Day(s) Delivery</h3>
-              <div className="actionButton">
-                <button
-                  className="button dark"
-                  type="submit"
-                  onClick={async () =>
-                    CreateEscrow_Moralis(
-                      jobCurrency,
-                      true, // buyer initialized the contract
-                      (await GetWallet_NonMoralis())[0],
-                      jobPrice, // also depends on basic, standard, premium
-                      "ETH", // expected values: `ETH`, `USDC` - just means the native currency and not ERC20 .... needs better naming for sure
-                      await GetUserReferralChain((await GetWallet_NonMoralis())[0]), // referrerAddress
-                      jobTimeToDeliver, // 0 for testing only, real value more like:  24 * 7, // the value should be in hours - take 7 days for now, it should be read from the job (also depends on basic, standard, premium)
-                      sha256(jobDescription),
-                      Math.floor(Date.now() / 1000 + 365 * 24 * 60 * 60), // make it valid far in the future (e.g. 1 y or something like this...)
-                      jobSellerAddress, // get the seller wallet and put it in array
-                      PayzuraCentealizedArbiter // Payzura centralized wallet for now
-                    )
-                    .catch((error) => {
-                      console.error(error);
-                      console.log("create offer error code: " + error.code);
-                      console.log(
-                        "create offer error message: " + error.message
-                      );
-                      if (error.data && error.data.message) {
-                        console.log(error.data.message);
-                      } else {
-                        console.log(error.message);
-                      }
-                      process.exitCode = 1;
-                    })
-                  }
-                >
-                  <span>Continue ({jobPrice} {jobCurrency})</span>
-                </button>
-              </div>
-              <div className="actionButton--bottom">
-                <Link href={`/inbox/${jobSellerAddress}`}>
-                  <button className="button withIcon">
-                    <i>
-                      <MessageIc />
-                    </i>
-                    <span>Message Seller</span>
+            <Tabs className="reactTabsMain buySectionContainer" selectedIndex={tabIndex} onSelect={(index) => setTabIndex(index)}>
+              <TabList className="tabsList">
+                <Tab className="tabListItem" selectedClassName="active">Basic</Tab>
+                {/* <Tab className="tabListItem" selectedClassName="active">Standard</Tab> */}
+                {jobPriceStandard ? <Tab className="tabListItem" selectedClassName="active">Standard</Tab> : <Tab className="tabListItem" disabled={true} disabledClassName="disabled">Standard</Tab>}
+                {/* <Tab className="tabListItem" selectedClassName="active">Premium</Tab> */}
+                {jobPricePremium ? <Tab className="tabListItem" selectedClassName="active">Premium</Tab> : <Tab className="tabListItem" disabled={true} disabledClassName="disabled">Premium</Tab>}
+              </TabList>
+
+              <TabPanel className="tabsContainer" selectedClassName="selected">
+                <h1>{jobPriceBasic} {jobCurrencyBasic}</h1>
+                <h3>{jobTimeToDeliverBasic!=='custom' ? jobTimeToDeliverBasic : jobCustomTimeToDeliverBasic} Day(s) Delivery</h3>
+                <p>{jobDescriptionBasic}</p>
+                <div className="actionButton">
+                  <button
+                    className="button dark"
+                    type="submit"
+                    onClick={async () =>
+                      CreateEscrow_Moralis(
+                        jobCurrencyBasic,
+                        true, // buyer initialized the contract
+                        (await GetWallet_NonMoralis())[0],
+                        jobPriceBasic, // also depends on basic, standard, premium
+                        "ETH", // expected values: `ETH`, `USDC` - just means the native currency and not ERC20 .... needs better naming for sure
+                        await GetUserReferralChain((await GetWallet_NonMoralis())[0]), // referrerAddress
+                        (jobTimeToDeliverBasic!=='custom') ? jobTimeToDeliverBasic : jobCustomTimeToDeliverBasic, // 0 for testing only, real value more like:  24 * 7, // the value should be in hours - take 7 days for now, it should be read from the job (also depends on basic, standard, premium)
+                        sha256(jobDescriptionBasic),
+                        Math.floor(Date.now() / 1000 + 365 * 24 * 60 * 60), // make it valid far in the future (e.g. 1 y or something like this...)
+                        jobSellerAddress, // get the seller wallet and put it in array
+                        PayzuraCentealizedArbiter // Payzura centralized wallet for now
+                      )
+                      .catch((error) => {
+                        console.error(error);
+                        console.log("create offer error code: " + error.code);
+                        console.log(
+                          "create offer error message: " + error.message
+                        );
+                        if (error.data && error.data.message) {
+                          console.log(error.data.message);
+                        } else {
+                          console.log(error.message);
+                        }
+                        process.exitCode = 1;
+                      })
+                    }
+                  >
+                    <span>Continue ({jobPriceBasic} {jobCurrencyBasic})</span>
                   </button>
-                </Link>
-              </div>
+                </div>
+              </TabPanel>
+              {jobPriceStandard && <TabPanel className="tabsContainer" selectedClassName="selected">
+                <h1>{jobPriceStandard} {jobCurrencyStandard}</h1>
+                <h3>{jobTimeToDeliverStandard!=='custom' ? jobTimeToDeliverStandard : jobCustomTimeToDeliverStandard} Day(s) Delivery</h3>
+                <p>{jobDescriptionStandard}</p>
+                <div className="actionButton">
+                  <button
+                    className="button dark"
+                    type="submit"
+                    onClick={async () =>
+                      CreateEscrow_Moralis(
+                        jobCurrencyStandard,
+                        true, // buyer initialized the contract
+                        (await GetWallet_NonMoralis())[0],
+                        jobPriceStandard, // also depends on basic, standard, premium
+                        "ETH", // expected values: `ETH`, `USDC` - just means the native currency and not ERC20 .... needs better naming for sure
+                        await GetUserReferralChain((await GetWallet_NonMoralis())[0]), // referrerAddress
+                        (jobTimeToDeliverStandard!=='custom') ? jobTimeToDeliverStandard : jobCustomTimeToDeliverStandard, // 0 for testing only, real value more like:  24 * 7, // the value should be in hours - take 7 days for now, it should be read from the job (also depends on basic, standard, premium)
+                        sha256(jobDescriptionStandard),
+                        Math.floor(Date.now() / 1000 + 365 * 24 * 60 * 60), // make it valid far in the future (e.g. 1 y or something like this...)
+                        jobSellerAddress, // get the seller wallet and put it in array
+                        PayzuraCentealizedArbiter // Payzura centralized wallet for now
+                      )
+                      .catch((error) => {
+                        console.error(error);
+                        console.log("create offer error code: " + error.code);
+                        console.log(
+                          "create offer error message: " + error.message
+                        );
+                        if (error.data && error.data.message) {
+                          console.log(error.data.message);
+                        } else {
+                          console.log(error.message);
+                        }
+                        process.exitCode = 1;
+                      })
+                    }
+                  >
+                    <span>Continue ({jobPriceStandard} {jobCurrencyStandard})</span>
+                  </button>
+                </div>
+              </TabPanel>}
+              {jobPricePremium && <TabPanel className="tabsContainer" selectedClassName="selected">
+                <h1>{jobPricePremium} {jobCurrencyPremium}</h1>
+                <h3>{jobTimeToDeliverPremium!=='custom' ? jobTimeToDeliverPremium : jobCustomTimeToDeliverPremium} Day(s) Delivery</h3>
+                <p>{jobDescriptionPremium}</p>
+                <div className="actionButton">
+                  <button
+                    className="button dark"
+                    type="submit"
+                    onClick={async () =>
+                      CreateEscrow_Moralis(
+                        jobCurrencyPremium,
+                        true, // buyer initialized the contract
+                        (await GetWallet_NonMoralis())[0],
+                        jobPricePremium, // also depends on basic, standard, premium
+                        "ETH", // expected values: `ETH`, `USDC` - just means the native currency and not ERC20 .... needs better naming for sure
+                        await GetUserReferralChain((await GetWallet_NonMoralis())[0]), // referrerAddress
+                        (jobTimeToDeliverPremium!=='custom') ? jobTimeToDeliverPremium : jobCustomTimeToDeliverPremium, // 0 for testing only, real value more like:  24 * 7, // the value should be in hours - take 7 days for now, it should be read from the job (also depends on basic, standard, premium)
+                        sha256(jobDescriptionPremium),
+                        Math.floor(Date.now() / 1000 + 365 * 24 * 60 * 60), // make it valid far in the future (e.g. 1 y or something like this...)
+                        jobSellerAddress, // get the seller wallet and put it in array
+                        PayzuraCentealizedArbiter // Payzura centralized wallet for now
+                      )
+                      .catch((error) => {
+                        console.error(error);
+                        console.log("create offer error code: " + error.code);
+                        console.log(
+                          "create offer error message: " + error.message
+                        );
+                        if (error.data && error.data.message) {
+                          console.log(error.data.message);
+                        } else {
+                          console.log(error.message);
+                        }
+                        process.exitCode = 1;
+                      })
+                    }
+                  >
+                    <span>Continue ({jobPricePremium} {jobCurrencyPremium})</span>
+                  </button>
+                </div>
+              </TabPanel>}
+            </Tabs>
+
+            <div className="actionButton--bottom">
+              <Link href={`/inbox/${jobSellerAddress}`}>
+                <button className="button withIcon">
+                  <i>
+                    <MessageIc />
+                  </i>
+                  <span>Message Seller</span>
+                </button>
+              </Link>
             </div>
           </div>
         </div>

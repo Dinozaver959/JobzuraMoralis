@@ -1,157 +1,52 @@
-import React from "react";
+import React, {useEffect, useState} from "react";
 import Link from "next/link";
 import Moment from "react-moment";
 import { useQuery } from "react-query";
 import makeBlockie from "ethereum-blockies-base64";
 import Image from "next/image";
 
-const getAllUsersFetch = async () => {
-  const response = await fetch("/api/get/AllUsers");
-  const data = await response.json();
 
+const getUserListFetch = async (userWallet) => {
+  const response = await fetch(`/api/V2-Firebase/get/UserMessageList?userWallet=${userWallet}`);
+  const data = await response.json();
   return data;
 };
 
-const getAllMessagesFetch = async () => {
-  const response = await fetch("/api/get/AllMessages");
-  const messageData = await response.json();
-
-  return messageData;
+const getLastMessagesFetch = async (userWallet) => {
+  const response = await fetch(`/api/V2-Firebase/get/UserMessageLastMessage?userWallet=${userWallet}`);
+  const data = await response.json();
+  return data;
 };
 
-const getAllUsersAndMessagesFetch = async () => {
-  const [users, messages] = await Promise.all([
-    getAllUsersFetch(),
-    getAllMessagesFetch(),
-  ]);
-  return { users, messages };
+const getDirectMessageList = async (userWallet) => {
+  const [dirMessageList] = await Promise.all(
+    [getUserListFetch(userWallet),]
+    );
+  return dirMessageList;
 };
+
+const getLastMessages = async (userWallet) => {
+  const [dirLastMessages] = await Promise.all(
+    [getLastMessagesFetch(userWallet),]
+    );  
+
+  return dirLastMessages;
+};
+
 
 export const MessagesUsersList = (props) => {
   const { currentAccount, userListVisible, handleClickUserlist } = props;
   const lowerCaseCurrentAccount = currentAccount?.toLowerCase();
-  const { data: allUsersAndMessagesData, status } = useQuery(
-    "UsersAndMessages",
-    getAllUsersAndMessagesFetch,
+
+  const { data: directMessageList, status: statusMessageList} = useQuery(
+    "nameMessageList",
+    () => getDirectMessageList(lowerCaseCurrentAccount),
   );
 
-  const users = allUsersAndMessagesData?.users.filter((user) => {
-    return user.name.userAddress !== lowerCaseCurrentAccount;
-  });
-
-  const getUsersList = (users) => {
-    const usersWithMessages = users?.map((user) => {
-      const lowerCaseUser = user.name.userAddress?.toLowerCase();
-
-      const userMessages = allUsersAndMessagesData.messages?.filter(
-        (message) => {
-          const lowerCaseSender = message.message.sender.toLowerCase();
-          const lowerCaseReceiver = message.message.receiver.toLowerCase();
-          return (
-            lowerCaseSender === lowerCaseUser ||
-            lowerCaseReceiver === lowerCaseUser
-          );
-        }
-      );
-      return {
-        ...user,
-        messages: userMessages,
-        currentUser: lowerCaseCurrentAccount,
-      };
-    });
-
-    const usersWithMessagesSorted = usersWithMessages?.sort((a, b) => {
-      return b.messages?.length - a.messages?.length;
-    });
-
-    const usersWithMessagesSortedFiltered = usersWithMessagesSorted?.filter(
-      (user) => {
-        return user.messages?.length > 0;
-      }
-    );
-
-    return usersWithMessagesSortedFiltered;
-  };
-
-  const usersList = getUsersList(users);
-
-  const filteredUsersList = usersList?.filter((user) => {
-    const lowerCaseUser = user?.name?.userAddress?.toLowerCase();
-    const userMessages = allUsersAndMessagesData.messages?.filter((message) => {
-      const lowerCaseSender = message.message.sender.toLowerCase();
-      const lowerCaseReceiver = message.message.receiver.toLowerCase();
-      return (
-        lowerCaseSender === lowerCaseUser || lowerCaseReceiver === lowerCaseUser
-      );
-    });
-    const userMessagesWithCurrentUser = userMessages?.filter((message) => {
-      const lowerCaseSender = message.message.sender.toLowerCase();
-      const lowerCaseReceiver = message.message.receiver.toLowerCase();
-      return (
-        lowerCaseSender === lowerCaseCurrentAccount ||
-        lowerCaseReceiver === lowerCaseCurrentAccount
-      );
-    });
-    return userMessagesWithCurrentUser?.length > 0;
-  });
-
-
-  const lastMessageContent = filteredUsersList?.map((user) => {
-    const lowerCaseUser = user.name.userAddress?.toLowerCase();
-    const userMessages = allUsersAndMessagesData.messages?.filter((message) => {
-      const lowerCaseSender = message.message.sender.toLowerCase();
-      const lowerCaseReceiver = message.message.receiver.toLowerCase();
-      return (
-        lowerCaseSender === lowerCaseUser || lowerCaseReceiver === lowerCaseUser
-      );
-    });
-    const userMessagesWithCurrentUser = userMessages?.filter((message) => {
-      const lowerCaseSender = message.message.sender.toLowerCase();
-      const lowerCaseReceiver = message.message.receiver.toLowerCase();
-      return (
-        lowerCaseSender === lowerCaseCurrentAccount ||
-        lowerCaseReceiver === lowerCaseCurrentAccount
-      );
-    });
-    const lastMessage =
-      userMessagesWithCurrentUser?.[userMessagesWithCurrentUser?.length - 1];
-    return lastMessage;
-  });
-
-  const lastMessageTimestamp = filteredUsersList?.map((user) => {
-    const lowerCaseUser = user.name.userAddress?.toLowerCase();
-    const userMessages = allUsersAndMessagesData.messages?.filter((message) => {
-      const lowerCaseSender = message.message.sender.toLowerCase();
-      const lowerCaseReceiver = message.message.receiver.toLowerCase();
-      return (
-        lowerCaseSender === lowerCaseUser || lowerCaseReceiver === lowerCaseUser
-      );
-    });
-    const userMessagesWithCurrentUser = userMessages?.filter((message) => {
-      const lowerCaseSender = message.message.sender.toLowerCase();
-      const lowerCaseReceiver = message.message.receiver.toLowerCase();
-      return (
-        lowerCaseSender === lowerCaseCurrentAccount ||
-        lowerCaseReceiver === lowerCaseCurrentAccount
-      );
-    });
-    const lastMessage =
-      userMessagesWithCurrentUser?.[userMessagesWithCurrentUser?.length - 1];
-    return lastMessage;
-  });
-
-  const lastMessageContentWithYou = lastMessageContent?.map((message) => {
-    const lowerCaseSender = message?.message?.sender?.toLowerCase();
-    if (lowerCaseSender === lowerCaseCurrentAccount) {
-      if (message?.message?.message === "") {
-        return "(sent an image)";
-      } else {
-        return message?.message?.message;
-      }
-    } else {
-      return message?.message?.message;
-    }
-  });
+  const { data: LastMessages, status: statusLastMessages } = useQuery(
+    "nameLastMessages",
+    () => getLastMessages(lowerCaseCurrentAccount),
+  );
 
   return (
     <div className={`inboxList ${userListVisible ? "" : "visibleList"}`}>
@@ -159,19 +54,19 @@ export const MessagesUsersList = (props) => {
         <div className="inboxHeaderSort">All Conversations</div>
       </div>
       <div className="inboxListContainer">
-        {filteredUsersList &&
-          filteredUsersList?.map((user, index) => (
+        {directMessageList &&
+          directMessageList?.map((user, index) => (
             <>
-              {status === "success" && (
-                <Link href={`/inbox/${user.name.userAddress}`} key={index}>
+              {(statusMessageList === "success" && statusLastMessages === "success") && (
+                <Link href={`/inbox/${user.name.stringValue}`} key={index}>
                   <div className="inboxListItem">   {/*  onClick={handleClickUserlist} */}
                     <div className="inboxUserThumb">
                       <span className="profilePic">
                         <Image
-                          src={makeBlockie(user.name.userAddress)}
+                          src={makeBlockie(user.name.stringValue)}
                           width="100%"
                           height="100%"
-                          alt={user.name.userAddress}
+                          alt={user.name.stringValue}
                           style={{ borderRadius: "50%" }}
                         />
                       </span>
@@ -179,18 +74,18 @@ export const MessagesUsersList = (props) => {
                     <div className="inboxUserSort">
                       <div className="inboxSortLeft">
                         <div className="listUsername">
-                          {user.name.userAddress.slice(0, 6) +
+                          {user.name.stringValue.slice(0, 6) +
                             "..." +
-                            user.name.userAddress.slice(-4)}
+                            user.name.stringValue.slice(-4)}
                         </div>
                         <div className="userLastMsg">
-                          {lastMessageContentWithYou[index]}
+                          {LastMessages[index]?.name.LastMessage}
                         </div>
                       </div>
                       <div className="inboxSortRight">
                         <div className="userLastMsgTime">
                           <Moment fromNow>
-                            {lastMessageTimestamp[index]?.message.createdAt}
+                            {LastMessages[index]?.name.Created._seconds * 1000}
                           </Moment>
                         </div>
                       </div>
@@ -198,7 +93,7 @@ export const MessagesUsersList = (props) => {
                   </div>
                 </Link>
               )}
-              {status === "loading" && (
+              {(statusMessageList === "loading" || statusLastMessages === "loading") && (
                 <div className="inboxListItem">
                   <div className="inbox__users__list__item__header">
                     <div>
@@ -211,7 +106,7 @@ export const MessagesUsersList = (props) => {
               )}
             </>
           ))}
-        {filteredUsersList?.length === 0 && (
+        {directMessageList?.length === 0 && (
           <div
             className="inboxListItem"
             style={{

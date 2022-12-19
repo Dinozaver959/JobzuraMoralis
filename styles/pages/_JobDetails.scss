@@ -208,7 +208,6 @@
   }
 
   .buySectionContainer {
-    padding: 1.5em;
     border: 1px solid $BorderDark;
     display: flex;
     flex-direction: column;
@@ -218,14 +217,14 @@
         margin-top: 1em;
         width: 100%;
       }
-
-      &--bottom > button {
-        width: 100%;
-        margin-top: 1em;
-        background: $WhiteColor;
-        border: 1px solid $BorderLight;
-      }
     }
+  }
+
+  .actionButton--bottom > button {
+    width: 100%;
+    margin-top: 1em;
+    background: $WhiteColor;
+    border: 1px solid $BorderLight;
   }
 }
 

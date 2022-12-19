@@ -61,6 +61,8 @@ exports.onPayzuraWrite = functions.firestore
         const tx = "";
         await handleNewContractBuyer(tx, event)
         await appendJobData(tx, event);
+        await UpdateNotifications(event, "buyer_initialized_and_paid") 
+
       } else if(event.name == "OfferCreatedBuyer2") {
         //const tx = await getTx(event.transactionHash)
         //if(!tx) throw("no tx")
@@ -76,27 +78,36 @@ exports.onPayzuraWrite = functions.firestore
         //if(!tx) throw("no tx")
         const tx = "";
         await handleContractAcceptedSeller(tx, event)
-      } 
-      else if(event.name == "FundsClaimed") {
+        await UpdateNotifications(event, "in progress") 
+
+      } else if(event.name == "FundsClaimed") {
         //const tx = await getTx(event.transactionHash)
         //if(!tx) throw("no tx")
         const tx = "";
         await handleFundsClaimed(tx, event)
+        await UpdateNotifications(event, "complete") 
+
       } else if(event.name == "PaymentReturned") {
         //const tx = await getTx(event.transactionHash)
         //if(!tx) throw("no tx")
         const tx = "";
         await handlePaymentReturned(tx, event)
+        await UpdateNotifications(event, "complete") 
+
       } else if(event.name == "DeliveryConfirmed") {
         //const tx = await getTx(event.transactionHash)
         //if(!tx) throw("no tx")
         const tx = "";
         await handleDeliveryConfirmed(tx, event)
+        await UpdateNotifications(event, "complete") 
+
       } else if(event.name == "DisputeStarted") {
         //const tx = await getTx(event.transactionHash)
         //if(!tx) throw("no tx")
         const tx = "";
         await handleDisputeStarted(tx, event)
+        await UpdateNotifications(event, "in dispute") 
+
       } else if(event.name == "DisputeVoted") {
         //const tx = await getTx(event.transactionHash)
         //if(!tx) throw("no tx")
@@ -107,7 +118,10 @@ exports.onPayzuraWrite = functions.firestore
         //if(!tx) throw("no tx")
         const tx = "";
         await handleDisputeClosed(tx, event)
+        await UpdateNotifications(event, "complete") 
       } 
+
+
 
     } catch (error) {
       console.error("I am an error!", error);
@@ -115,6 +129,80 @@ exports.onPayzuraWrite = functions.firestore
   });
 
 
+
+
+
+async function UpdateNotifications(event, state){
+
+  console.log("UpdateNotifications started...")
+
+  const contractID = event.chainId.toString() + "_" + event.clonedContractsIndex;
+
+  const aContract = await admin.firestore().collection(`contracts`).doc(contractID).get();
+  const seller = aContract['_fieldsProto'].SellerWallet.stringValue.toString();
+  const buyer = aContract['_fieldsProto'].BuyerWallet.stringValue.toString();
+
+  console.log("buyer:");
+  console.log(buyer);
+
+  console.log("seller:");
+  console.log(seller);
+
+
+  const notification = {
+    SellerWallet: seller,
+    BuyerWallet: buyer,  
+    ContractID: contractID,
+    ChainID: event.chainId,
+    Index: event.clonedContractsIndex,
+    Created: new Date(),
+    Event: event.name,
+    State: state, // is it even needed - like really?
+    Read: "no",
+  }
+
+  const uniqueEvent = contractID + "_" + event.name.toString();
+
+
+  if(event.name == "OfferCreatedBuyer"){
+    // update seller
+    await admin.firestore().collection("notifications").doc(seller).collection(seller).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+
+  } else if(event.name == "OfferAcceptedSeller"){
+    // update buyer
+    await admin.firestore().collection("notifications").doc(buyer).collection(buyer).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+
+  } else if(event.name == "FundsClaimed"){
+    // update buyer - if at all
+    await admin.firestore().collection("notifications").doc(buyer).collection(buyer).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+
+  } else if(event.name == "PaymentReturned"){
+    // update buyer
+    await admin.firestore().collection("notifications").doc(buyer).collection(buyer).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+
+  } else if(event.name == "DeliveryConfirmed"){
+    // update seller
+    await admin.firestore().collection("notifications").doc(seller).collection(seller).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+
+  } else if(event.name == "DisputeStarted"){
+    // update seller
+    await admin.firestore().collection("notifications").doc(seller).collection(seller).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+
+  } else if(event.name == "DisputeClosed"){
+    // update both
+    await admin.firestore().collection("notifications").doc(buyer).collection(buyer).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+
+    await admin.firestore().collection("notifications").doc(seller).collection(seller).doc(uniqueEvent).set(notification,{ merge: true });
+    await admin.firestore().collection("notifications").doc(seller).set({ Unread: admin.firestore.FieldValue.increment(1) }, {merge: true});
+  }
+}
 
 async function appendJobData(tx, event){
 
@@ -155,8 +243,9 @@ async function handleNewContractBuyer(tx, event) {
     Updated: new Date()
   }
 
-  //await admin.firestore().collection("contracts").doc(event.chainId.toString()).collection(event.chainId.toString()).doc(event.clonedContractsIndex).set(contract,{ merge: true });
-  await admin.firestore().collection("contracts").doc(event.chainId.toString() + "_" + event.clonedContractsIndex).set(contract,{ merge: true });
+  const contractID = event.chainId.toString() + "_" + event.clonedContractsIndex;
+
+  await admin.firestore().collection("contracts").doc(contractID).set(contract,{ merge: true });
 }
 
 async function handleNewContractBuyer2(tx, event) {
@@ -168,7 +257,6 @@ async function handleNewContractBuyer2(tx, event) {
     Updated: new Date()
   }
 
-  //await admin.firestore().collection("contracts").doc(event.chainId.toString()).collection(event.chainId.toString()).doc(event.clonedContractsIndex).set(contract,{ merge: true });
   await admin.firestore().collection("contracts").doc(event.chainId.toString() + "_" + event.clonedContractsIndex).set(contract,{ merge: true });
 }
 
@@ -179,8 +267,17 @@ async function handleContractCanceled(tx, event){
     Updated: new Date()
   }
 
-  //await admin.firestore().collection("contracts").doc(event.chainId.toString()).collection(event.chainId.toString()).doc(event.clonedContractsIndex).set(contract,{ merge: true });
   await admin.firestore().collection("contracts").doc(event.chainId.toString() + "_" + event.clonedContractsIndex).set(contract,{ merge: true });
+
+
+  const notification = {
+    read: "no",
+    State: "canceled",
+    Updated: new Date()
+  }
+
+  const contractID = event.chainId.toString() + "_" + event.clonedContractsIndex;
+  await admin.firestore().collection("notifications").doc(contractID).set(notification,{ merge: true });
 }
 
 async function handleContractAcceptedSeller(tx, event){
@@ -189,8 +286,9 @@ async function handleContractAcceptedSeller(tx, event){
     Updated: new Date()
   }
 
-  //await admin.firestore().collection("contracts").doc(event.chainId.toString()).collection(event.chainId.toString()).doc(event.clonedContractsIndex).set(contract,{ merge: true });
-  await admin.firestore().collection("contracts").doc(event.chainId.toString() + "_" + event.clonedContractsIndex).set(contract,{ merge: true });
+  const contractID = event.chainId.toString() + "_" + event.clonedContractsIndex;
+
+  await admin.firestore().collection("contracts").doc(contractID).set(contract,{ merge: true });
 }
 
 

@@ -15,7 +15,8 @@ export default function Users() {
   };
 
   const fetchAllReviews = async () => {
-    const { data } = await axios.get("/api/get/AllReviews");
+    //const { data } = await axios.get("/api/get/AllReviews");
+    const { data } = await axios.get("/api/V2-Firebase/get/AllSellersReviews");
     return data;
   };
 
@@ -29,7 +30,7 @@ export default function Users() {
 
   
   const usersWithReviews = users?.map(user => {
-    const userReviews = reviews?.filter(review => review.name.JobSeller === user.name.userAddress)
+    const userReviews = reviews?.filter(review => review.name.SellerWallet === user.name.userAddress)
     return {
       ...user,
       reviews: userReviews

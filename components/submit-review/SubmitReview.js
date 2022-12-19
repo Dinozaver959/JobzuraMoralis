@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import { message } from "antd";
+import React, { useState, useEffect } from "react";
 import { FaStar } from "react-icons/fa";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import axios from "axios";
@@ -10,40 +9,40 @@ import { GetWallet_NonMoralis } from "../../JS/local_web3_Moralis.js";
 import { SignMessageWithAlias } from "../../JS/auth/messageSigning";
 import { CheckAndCreateAlias } from "../../JS/auth/AliasAuthentication";
 
-const fetchJobDetails = async (jobID) => {
-  const response = await axios.get(`/api/get/Job?jobID=${jobID}`);
-  const data = await response.data;
 
-  return data;
-};
 
-const SubmitReview = (props) => {
+function SubmitReview (props) {
   const { currentAccount } = props;
   const router = useRouter();
+  const contractID = router.query.contractID;  
   const [review, setReview] = useState("");
   const [rating, setRating] = useState(0);
-  const [like, setLike] = useState("");
-  const [dislike, setDislike] = useState("");
+  //const [like, setLike] = useState("");
+  //const [dislike, setDislike] = useState("");
   const [privateReview, setPrivateReview] = useState(false);
-  const jobID = router.query.jobID;
   const [feedback, setFeedback] = useState("");
   const [hoverValue, setHoverValue] = useState(undefined);
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { data: jobDetails } = useQuery(
-    "JobDetails",
-    () => fetchJobDetails(jobID),
-    {
-      refetchInterval: 1000,
-    }
+
+
+  const fetchContractDetails = async (contractID) => {
+    const response = await axios.get(`/api/V2-Firebase/get/Contract?contractID=${contractID}`);
+    return response.data;
+  };
+
+  const { data, isLoading } = useQuery(["SubmitReview", contractID], () =>
+    fetchContractDetails(contractID)
   );
 
-  const jobDetail = jobDetails?.[0];
-  const jobSeller = jobDetail?.name?.Seller;
-  const jobTitle = jobDetail?.name?.Title;
-  const jobPrice = jobDetail?.name?.Price;
-  const jobImage = jobDetail?.name?.ImageLinks;
-  const jobBuyer = currentAccount;
+  const contractDetails = data;
+  const contractSeller = contractDetails?.SellerWallet.stringValue;
+  const contractBuyer = contractDetails?.BuyerWallet.stringValue;
+  const jobID = contractDetails?.JobId.stringValue;
+  const contractTitle = contractDetails?.Title.stringValue;
+  const contractPrice = contractDetails?.Price.stringValue;
+  const contractImage = contractDetails?.ImageLinks.arrayValue.values;
+ 
 
   let starsNumber = 5;
   let limitCharacters = 1200;
@@ -53,7 +52,7 @@ const SubmitReview = (props) => {
     setIsOpen((prev) => !prev);
   };
 
-  const toggleJobDetails = () => {
+  const toggleContractDetails = () => {
     setIsModalOpen((prev) => !prev);
   };
 
@@ -80,18 +79,26 @@ const SubmitReview = (props) => {
     const connectedAddress = (await GetWallet_NonMoralis())[0];
 
     // run for every parameter to append
-    const signedMessage_connectedAddress = await SignMessageWithAlias(
-      connectedAddress
-    );
+    const signedMessage_connectedAddress = await SignMessageWithAlias(connectedAddress);
     formData.append("address", signedMessage_connectedAddress.address);
-    formData.append(
-      "message_UserWallet",
-      signedMessage_connectedAddress.message
-    );
-    formData.append(
-      "signature_UserWallet",
-      signedMessage_connectedAddress.signature
-    );
+    formData.append("message_UserWallet", signedMessage_connectedAddress.message);
+    formData.append("signature_UserWallet", signedMessage_connectedAddress.signature);
+
+    const signedMessage_contractID = await SignMessageWithAlias(contractID);
+    formData.append("message_contractID", signedMessage_contractID.message);
+    formData.append("signature_contractID", signedMessage_contractID.signature);
+
+    const signedMessage_jobID = await SignMessageWithAlias(jobID);
+    formData.append("message_jobID", signedMessage_jobID.message);
+    formData.append("signature_jobID", signedMessage_jobID.signature);
+
+    const signedMessage_contractSeller = await SignMessageWithAlias(contractSeller);
+    formData.append("message_contractSeller", signedMessage_contractSeller.message);
+    formData.append("signature_contractSeller", signedMessage_contractSeller.signature);
+
+    const signedMessage_contractBuyer = await SignMessageWithAlias(contractBuyer);
+    formData.append("message_contractBuyer", signedMessage_contractBuyer.message);
+    formData.append("signature_contractBuyer", signedMessage_contractBuyer.signature); 
 
     const signedMessage_review = await SignMessageWithAlias(review);
     formData.append("message_review", signedMessage_review.message);
@@ -101,49 +108,20 @@ const SubmitReview = (props) => {
     formData.append("message_rating", signedMessage_rating.message);
     formData.append("signature_rating", signedMessage_rating.signature);
 
-    const signedMessage_privateReview = await SignMessageWithAlias(
-      privateReview.toString()
-    );
-    formData.append(
-      "message_privateReview",
-      signedMessage_privateReview.message
-    );
-    formData.append(
-      "signature_privateReview",
-      signedMessage_privateReview.signature
-    );
+    const signedMessage_privateReview = await SignMessageWithAlias(privateReview.toString());
+    formData.append("message_privateReview", signedMessage_privateReview.message);
+    formData.append("signature_privateReview", signedMessage_privateReview.signature);
 
-    const signedMessage_jobID = await SignMessageWithAlias(jobID);
-    formData.append("message_jobID", signedMessage_jobID.message);
-    formData.append("signature_jobID", signedMessage_jobID.signature);
 
-    const signedMessage_jobSeller = await SignMessageWithAlias(jobSeller);
-    formData.append("message_jobSeller", signedMessage_jobSeller.message);
-    formData.append("signature_jobSeller", signedMessage_jobSeller.signature);
+    axios.post("/api/V2-Firebase/post/createReview", formData)
+    .then((res) => {
+      if (res.status == 201 ) console.log("review successfully created!");
+    })
+    .catch((err) => {
+      console.log("creating a review failed...");
+      console.log(err);
+    });
 
-    const signedMessage_jobBuyer = await SignMessageWithAlias(jobBuyer);
-    formData.append("message_jobBuyer", signedMessage_jobBuyer.message);
-    formData.append("signature_jobBuyer", signedMessage_jobBuyer.signature);
-
-    const signedMessage_like = await SignMessageWithAlias(like);
-    formData.append("message_like", signedMessage_like.message);
-    formData.append("signature_like", signedMessage_like.signature);
-
-    const signedMessage_dislike = await SignMessageWithAlias(dislike);
-    formData.append("message_dislike", signedMessage_dislike.message);
-    formData.append("signature_dislike", signedMessage_dislike.signature);
-
-    //var formData = new FormData();
-    //formData.append("review", review);
-    //formData.append("rating", rating);
-    //formData.append("privateReview", privateReview);
-    //formData.append("jobID", jobID);
-    //formData.append("jobSeller", jobSeller);
-    //formData.append("jobBuyer", jobBuyer);
-    //formData.append("like", like);
-    //formData.append("dislike", dislike);
-
-    axios.post("/api/general/createReview", formData);
   };
 
   const handleSubmit = (e) => {
@@ -176,28 +154,28 @@ const SubmitReview = (props) => {
             Please leave a review for {" "}
             <span
               className="reviewJobModel"
-              onMouseOver={toggleJobDetails}
-              onMouseLeave={toggleJobDetails}
+              onMouseOver={toggleContractDetails}
+              onMouseLeave={toggleContractDetails}
             >
-              {jobTitle}.
+              {contractTitle}.
               {isModalOpen && (
                 <>
                   <div className="modal">
                     <div className="modalContent">
-                      <h3>{jobTitle}</h3>
-                      {jobImage?.length > 0 ? (
+                      <h3>{contractTitle}</h3>
+                      {contractImage && contractImage[0] ? (
                         <Image
-                          src={jobImage[0]}
+                          src={contractImage[0].stringValue}
                           width={250}
                           height={100}
-                          alt="jobImage"
+                          alt="contractImage"
                           objectFit="contain"
                         />
                       ) : null}
-                      <p>Price : {jobPrice}</p>
+                      <p>Price : {contractPrice}</p>
                       <p>
                         Seller :{" "}
-                        {jobSeller?.slice(0, 9) + "..." + jobSeller?.slice(-4)}
+                        {contractSeller?.slice(0, 9) + "..." + contractSeller?.slice(-4)}
                       </p>
                     </div>
                     <div className="polygon"></div>

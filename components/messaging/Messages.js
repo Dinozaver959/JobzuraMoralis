@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect, Fragment, useMemo } from "react";
-import { useMoralis } from "react-moralis";
 import Message from "./Message";
 import CloseIc from "./../icons/Close";
 import Picker from "@emoji-mart/react";
 import data from "@emoji-mart/data";
 import useSWR, { useSWRConfig } from "swr";
 import { useRouter } from "next/router";
+import axios from "axios";
+import { SignMessageWithAlias } from "../../JS/auth/messageSigning";
+import { CheckAndCreateAlias } from "../../JS/auth/AliasAuthentication";
 
 import AttachmentIc from "./../icons/Attachment";
 import SmileyIc from "./../icons/Smiley";
@@ -13,13 +15,13 @@ import SmileyIc from "./../icons/Smiley";
 const fetcher = async (...args) => fetch(...args).then((res) => res.json());
 
 const Messages = (props) => {
-  const { Moralis } = useMoralis();
   const { currentAccount, userAddress } = props;
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [showEmojis, setShowEmojis] = useState(false);
   const filePickerRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFilePOST, setSelectedFilePOST] = useState(null);
   const endOfMessages = useRef(null);
   const truncateReceiverAddress = userAddress
     ? userAddress.slice(0, 5) + "..." + userAddress.slice(-4)
@@ -28,7 +30,8 @@ const Messages = (props) => {
   const messageReceiver = userAddress?.toLowerCase();
   const { mutate } = useSWRConfig();
   const { data: messages, error } = useSWR(
-    `/api/get/MyMessages?sender=${messageSender}&receiver=${messageReceiver}`,
+    // `/api/get/MyMessages?sender=${messageSender}&receiver=${messageReceiver}`,
+    `/api/V2-Firebase/get/MyMessages?sender=${messageSender}&receiver=${messageReceiver}`,
     fetcher,
   );
 
@@ -49,39 +52,57 @@ const Messages = (props) => {
     reader.onload = (readerEvent) => {
       setSelectedFile(readerEvent.target.result);
     };
+    setSelectedFilePOST(e.target.files[0]);
     filePickerRef.current.value = "";
-  };
-
-  const createReceiver = async () => {
-    const Users = Moralis.Object.extend("Users");
-    const query = new Moralis.Query(Users);
-    query.equalTo("userAddress", messageReceiver);
-    const results = await query.find();
-    if (results.length === 0) {
-      const user = new Users();
-      user.set("userAddress", messageReceiver);
-      await user.save();
-    }
   };
 
   const sendMessage = async (e) => {
     e.preventDefault();
 
     if (message.length > 0) {
-      const Messages = Moralis.Object.extend("Messages");
-      const messageObject = new Messages();
 
-      messageObject.set("sender", messageSender);
-      messageObject.set("receiver", messageReceiver);
-      messageObject.set("message", message);
-      messageObject.set("image", selectedFile);
+      const res = await CheckAndCreateAlias();
+      if(res == false){return false;} 
 
-      await messageObject.save();
+      // create a formData and send to POST API
+      var formData = new FormData();
+      //const connectedAddress = (await GetWallet_NonMoralis())[0];
+
+      const signedMessage_sender = await SignMessageWithAlias(messageSender);
+      formData.append("address", signedMessage_sender.address);
+      formData.append("message_sender", signedMessage_sender.message);
+      formData.append("signature_sender", signedMessage_sender.signature);
+  
+      const signedMessage_receiver = await SignMessageWithAlias(messageReceiver);
+      formData.append("message_receiver", signedMessage_receiver.message);
+      formData.append("signature_receiver", signedMessage_receiver.signature);
+
+      const signedMessage_message = await SignMessageWithAlias(message);
+      formData.append("message_message", signedMessage_message.message);
+      formData.append("signature_message", signedMessage_message.signature);
+
+      formData.append(`file0`, selectedFilePOST); // 1 img only
+      
+    
+      axios.post("/api/V2-Firebase/post/saveMessage", formData)
+      .then((res) => {
+        if (res.status == 201 ) console.log("data successfully updated!");
+      })
+      .catch((err) => {
+        console.log("data profile failed to update ...");
+        console.log(err);
+      });
+      /**/ 
+      // DON'T WAIT FOR THE REPLY for MESSAGES - since the time it takes is more important than knowing if it saved the message or not (99% it will save...)
+      // leave it for now - otherwise we have a concurrency issue...
+
       setMessage("");
       setSelectedFile(null);
+      setSelectedFilePOST(null);
 
-      await createReceiver();
-      mutate(`/api/get/MyMessages?sender=${messageSender}&receiver=${messageReceiver}`);
+
+      //mutate(`/api/get/MyMessages?sender=${messageSender}&receiver=${messageReceiver}`);
+      mutate(`/api/V2-Firebase/get/MyMessages?sender=${messageSender}&receiver=${messageReceiver}`);
     }
   };
 

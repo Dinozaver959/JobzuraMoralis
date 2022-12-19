@@ -18,9 +18,8 @@ const AboutSeller = (props) => {
   };
 
   const fetchUserReviews = async (jobSellerAddress) => {
-    const response = await axios.get(
-      `/api/get/UserReviews?UserWallet=${jobSellerAddress}`
-    );
+    //const response = await axios.get(`/api/get/UserReviews?UserWallet=${jobSellerAddress}`);
+    const response = await axios.get(`/api/V2-Firebase/get/UserSellerReviews?UserWallet=${jobSellerAddress}`); // new API for Firebase
     return response.data;
   };
 
@@ -97,20 +96,6 @@ const AboutSeller = (props) => {
     oneStarRating
   ).toFixed(1);
 
-  if (5 <= totalRating && totalRating > 4.9) {
-    numberOfStars = 5;
-  } else if (4 <= totalRating && totalRating < 4.9) {
-    numberOfStars = 4;
-  } else if (3 <= totalRating && totalRating < 3.9) {
-    numberOfStars = 3;
-  } else if (2 <= totalRating && totalRating < 2.9) {
-    numberOfStars = 2;
-  } else if (1 <= totalRating && totalRating < 1.9) {
-    numberOfStars = 1;
-  } else {
-    numberOfStars = 0;
-  }
-
   console.log("userProfile", userProfile);
 
   if(data) {
@@ -173,7 +158,7 @@ const AboutSeller = (props) => {
                     <FaStar
                       key={index}
                       size={18}
-                      className={index < numberOfStars ? "activeStar" : "disableStar"}
+                      className={index < (Math.round(totalRating)) ? "activeStar" : "disableStar"}
                       style={{ marginRight: 5 }}
                       />
                     );

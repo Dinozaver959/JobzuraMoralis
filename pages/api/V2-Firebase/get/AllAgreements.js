@@ -35,7 +35,4 @@ export default apiRoute
 async function GetAllAgreements(){
   const snapshot = await admin.firestore().collection('contracts').get();
   return snapshot.docs.map(doc => doc.data());
-
-  console.log(res['_fieldsProto']);
-  return res['_fieldsProto'];
 }

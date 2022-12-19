@@ -11,7 +11,7 @@ function UserHighlights(props) {
   const stars = Array(numberOfStars).fill(0);
 
   const publicReviews = userReviews?.map((review, index) => {
-    if (review.name.Private.includes("false")) {
+    if (review.name.PrivateReview.includes("false")) {
       return <UserReview key={index} review={review} />;
     }
   });
@@ -54,22 +54,9 @@ function UserHighlights(props) {
     oneStarRating
   ).toFixed(1);
 
-  if (5 <= totalRating && totalRating > 4.9) {
-    numberOfStars = 5;
-  } else if (4 <= totalRating && totalRating < 4.9) {
-    numberOfStars = 4;
-  } else if (3 <= totalRating && totalRating < 3.9) {
-    numberOfStars = 3;
-  } else if (2 <= totalRating && totalRating < 2.9) {
-    numberOfStars = 2;
-  } else if (1 <= totalRating && totalRating < 1.9) {
-    numberOfStars = 1;
-  } else {
-    numberOfStars = 0;
-  }
 
   const filteredReviews = userReviews?.map((review) => {
-    return review.name.Private;
+    return review.name.PrivateReview;
   });
 
   const filteredReviewsWithoutPrivate = filteredReviews?.includes("true");
@@ -84,7 +71,7 @@ function UserHighlights(props) {
                 <FaStar
                   key={index}
                   size={18}
-                  className={index < numberOfStars ? "activeStar" : "disableStar"}
+                  className={index < (Math.round(totalRating)) ? "activeStar" : "disableStar"}
                   style={{ marginRight: 5 }}
                 />
               );

@@ -1,0 +1,49 @@
+.reactTabsMain {
+  .tabsList {
+    @include Flexbox;
+    @include FlexFlow(wrap);
+
+    .tabListItem {
+      flex: 2;
+      text-align: center;
+      padding: 12px;
+      background: rgba($BlackColor, 0.1);
+      @include Font(null, 0.9rem, $FontColorDark, null, 600);
+      cursor: pointer;
+
+      &.active {
+        background: $WhiteColor;
+      }
+
+      &.disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+    }
+  }
+
+  .tabsContainer {
+    display: none;
+
+    &.selected {
+      display: block;
+      padding: 1.5em;
+    }
+  }
+}
+
+.darkMode {
+  .reactTabsMain {
+    .tabsList {
+      .tabListItem {
+        background: lighten($DarkBg, 5%);
+        color: $FontColorLight;
+
+        &.active {
+          background: $DarkBg;
+          color: $WhiteColor;
+        }
+      }
+    }
+  }
+}

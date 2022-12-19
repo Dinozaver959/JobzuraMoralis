@@ -58,7 +58,8 @@ function UserDetails(props) {
   };
 
   const fetchUserReviews = async (userAddress) => {
-    const response = await axios.get(`/api/get/UserReviews?UserWallet=${userAddress}`);
+    //const response = await axios.get(`/api/get/UserReviews?UserWallet=${userAddress}`);
+    const response = await axios.get(`/api/V2-Firebase/get/UserSellerReviews?UserWallet=${userAddress}`); // new API for Firebase
     
     console.log("UserReviews:")
     console.log(response)

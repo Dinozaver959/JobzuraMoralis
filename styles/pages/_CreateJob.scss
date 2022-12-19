@@ -101,6 +101,20 @@
       margin-bottom: 10px;
     }
 
+    .deliveryTimeControls {
+      @extend %FlexRow-StartBetween;
+
+      > div:first-child {
+        flex: 2;
+      }
+
+      .deliveryTimeCustomSet {
+        @extend %FlexCol;
+        margin-left: 10px;
+        width: 100px;
+      }
+    }
+
     .mergeControl {
       @include Flexbox;
       @include FlexFlow(nowrap);

@@ -1,29 +1,11 @@
 import middleware from '../../../../middleware/middleware.js'
 import nextConnect from 'next-connect'
 const DOMPurify = require('isomorphic-dompurify');
-const fs = require("fs");
-const AWS = require('aws-sdk');
-var crypto = require("crypto");
 import { sha256 } from "js-sha256";
+import {GetWalletFromAlias} from '../../../../JS/auth/GetWalletFromAlias-Firebase';
 import {ValidateAndReturnMessage, AnyEmpty} from "../../../../JS/auth/BackendValidation";
-//import {GetWalletFromAlias} from '../../../JS/DB-cloudFunctions';
 import admin from "../../../../_firebase-admin";
-
-
-const DO_SPACES_ID="PMPSVLSBZWCFNIRNYBYM"
-const DO_SPACES_SECRET="MRWAGMp+cj3b9ObGuq2EvHH235LjEEY+8+v6dlrjALc"
-const DO_SPACES_URL="https://fra1.digitaloceanspaces.com"
-const DO_SPACES_BUCKET="easylaunchnftdospace1"
-const PUBLIC_URL="https://easylaunchnftdospace1.fra1.digitaloceanspaces.com"
-
-const s3Client = new AWS.S3({
-  endpoint: DO_SPACES_URL,
-  region: "fra1",
-  credentials: {
-    accessKeyId: DO_SPACES_ID,
-    secretAccessKey: DO_SPACES_SECRET
-  }
-});
+import {UploadImageToDigitalOcean} from "../../../../JS/uploadToDO";
 
 
 const apiRoute = nextConnect()
@@ -41,27 +23,49 @@ apiRoute.post(async (req, res) => {
   //------------------------------------------------------------------------------------------------
 
   const address = DOMPurify.sanitize(req.body.address[0].toString());
-
   const seller = ValidateAndReturnMessage(address, req.body.message_seller[0].toString(), req.body.signature_seller[0].toString()).toLowerCase();
+  const jobId = ValidateAndReturnMessage(address, req.body.message_jobId[0].toString(), req.body.signature_jobId[0].toString()).toLowerCase();
   const title = ValidateAndReturnMessage(address, req.body.message_title[0].toString(), req.body.signature_title[0].toString());
-  const price = ValidateAndReturnMessage(address, req.body.message_price[0].toString(), req.body.signature_price[0].toString());
   const description = ValidateAndReturnMessage(address, req.body.message_description[0].toString(), req.body.signature_description[0].toString());
-  const currencyTicker = ValidateAndReturnMessage(address, req.body.message_currencyTicker[0].toString(), req.body.signature_currencyTicker[0].toString());
 
-  if(AnyEmpty([seller, title, price, description, currencyTicker])){
+  const price = ValidateAndReturnMessage(address, req.body.message_price[0].toString(), req.body.signature_price[0].toString());
+  const currencyTicker = ValidateAndReturnMessage(address, req.body.message_currencyTicker[0].toString(), req.body.signature_currencyTicker[0].toString());  
+  const descriptionBasic = ValidateAndReturnMessage(address, req.body.message_descriptionBasic[0].toString(), req.body.signature_descriptionBasic[0].toString());
+  const timeToDeliver = ValidateAndReturnMessage(address, req.body.message_timeToDeliver[0].toString(), req.body.signature_timeToDeliver[0].toString());
+  const customTimeToDeliver = ValidateAndReturnMessage(address, req.body.message_customTimeToDeliver[0].toString(), req.body.signature_customTimeToDeliver[0].toString());
+  
+  const priceStandard = ValidateAndReturnMessage(address, req.body.message_priceStandard[0].toString(), req.body.signature_priceStandard[0].toString());
+  const currencyTickerStandard = ValidateAndReturnMessage(address, req.body.message_currencyTickerStandard[0].toString(), req.body.signature_currencyTickerStandard[0].toString());  
+  const descriptionStandard = ValidateAndReturnMessage(address, req.body.message_descriptionStandard[0].toString(), req.body.signature_descriptionStandard[0].toString());
+  const timeToDeliverStandard = ValidateAndReturnMessage(address, req.body.message_timeToDeliverStandard[0].toString(), req.body.signature_timeToDeliverStandard[0].toString());
+  const customTimeToDeliverStandard = ValidateAndReturnMessage(address, req.body.message_customTimeToDeliverStandard[0].toString(), req.body.signature_customTimeToDeliverStandard[0].toString());
+
+  const pricePremium = ValidateAndReturnMessage(address, req.body.message_pricePremium[0].toString(), req.body.signature_pricePremium[0].toString());
+  const currencyTickerPremium = ValidateAndReturnMessage(address, req.body.message_currencyTickerPremium[0].toString(), req.body.signature_currencyTickerPremium[0].toString());  
+  const descriptionPremium = ValidateAndReturnMessage(address, req.body.message_descriptionPremium[0].toString(), req.body.signature_descriptionPremium[0].toString());
+  const timeToDeliverPremium = ValidateAndReturnMessage(address, req.body.message_timeToDeliverPremium[0].toString(), req.body.signature_timeToDeliverPremium[0].toString());
+  const customTimeToDeliverPremium = ValidateAndReturnMessage(address, req.body.message_customTimeToDeliverPremium[0].toString(), req.body.signature_customTimeToDeliverPremium[0].toString());
+
+  const category = ValidateAndReturnMessage(address, req.body.message_jobCategory[0].toString(), req.body.signature_jobCategory[0].toString());
+  const skills = ValidateAndReturnMessage(address, req.body.message_jobSkills[0].toString(), req.body.signature_jobSkills[0].toString());
+
+  if(AnyEmpty([seller, title, price, description, currencyTicker, category, skills, timeToDeliver])){
     res.status(420).end("not all signatures are valid");
   }
 
+
   // check that the address is associated with the original address (seller)
+  console.log("address.toLowerCase():")
+  console.log(address.toLowerCase());
   
-  //const orgWallet = await GetWalletFromAlias(address.toLowerCase());
-  const orgWallet = "HARD_CODED_FOR_NOW";
-  console.log(`orgWallet: ${orgWallet}`);
+  /*const walletAssociatedWithAliasInDB = await GetWalletFromAlias(address.toLowerCase());                                                                        // check Alias
+  console.log(`walletAssociatedWithAliasInDB:`);
+  console.log(walletAssociatedWithAliasInDB);
 
   // if not - terminate
-  //if(orgWallet != seller){
-  //  res.status(421).end("signatures are not from an Alias associated with this seller");
-  //}
+  if(walletAssociatedWithAliasInDB != seller){
+    res.status(421).end("signatures are not from an Alias associated with this seller");
+  }*/
 
 
   //------------------------------------------------------------------------------------------------
@@ -69,11 +73,28 @@ apiRoute.post(async (req, res) => {
   //------------------------------------------------------------------------------------------------
 
   console.log(`seller: ${seller}`)
+  console.log(`jobId: ${jobId}`)
   console.log(`title: ${title}`)
-  console.log(`price: ${price}`)
   console.log(`description: ${description}`)
+
+  console.log(`descriptionBasic: ${descriptionBasic}`)
   console.log(`currencyTicker: ${currencyTicker}`)
-  
+  console.log(`price: ${price}`)
+  console.log(`timeToDeliver: ${timeToDeliver}`)
+ 
+  console.log(`descriptionStandard: ${descriptionStandard}`)
+  console.log(`currencyTickerStandard: ${currencyTickerStandard}`)
+  console.log(`priceStandard: ${priceStandard}`)
+  console.log(`timeToDeliverStandard: ${timeToDeliverStandard}`)
+ 
+  console.log(`descriptionPremium: ${descriptionPremium}`)
+  console.log(`currencyTickerPremium: ${currencyTickerPremium}`)
+  console.log(`pricePremium: ${pricePremium}`)
+  console.log(`timeToDeliverPremium: ${timeToDeliverPremium}`)
+ 
+  console.log(`category: ${category}`)
+  console.log(`skills: ${skills}`)
+
   
 
   var images = [];
@@ -102,12 +123,16 @@ apiRoute.post(async (req, res) => {
     //const fileName = images[i].originalFilename.replace(/\s/g, '');   // remove empty space
     const imageLink = await UploadImageToDigitalOcean(images[i].path)
 
+    if(imageLink == ""){
+      return res.status(500).send("Error uploading file");
+    }
+
     console.log("link to the file on DO:")
     console.log(imageLink)
     imageLinks.push(imageLink)
   }
 
-  await SaveJobToFirebaseDB(seller, title, price, description, currencyTicker, imageLinks);
+  await SaveJobToFirebaseDB(category, imageLinks, seller, skills, description, descriptionBasic, currencyTicker, price, timeToDeliver, customTimeToDeliver, descriptionStandard, currencyTickerStandard, priceStandard, timeToDeliverStandard, customTimeToDeliverStandard, descriptionPremium, currencyTickerPremium, pricePremium, timeToDeliverPremium, customTimeToDeliverPremium, title, jobId);
 
   res.status(201).end("job created");
 })
@@ -122,56 +147,96 @@ export default apiRoute
 
 
 
-async function UploadImageToDigitalOcean(filePath){
-
-  // get random string for key
-  const ext = filePath.split(".");
-  const fileName = crypto.randomBytes(20).toString('hex') + "." + ext[ext.length - 1];
-
-  try {
-    s3Client.putObject({ // await
-    Bucket: DO_SPACES_BUCKET + "/Jobzura",
-    Key: fileName,
-    Body: fs.createReadStream(filePath),
-    ACL: "public-read"
-    }, (err, data) => {
-      console.log(err)
-      console.log(data)
-      //console.log("saved file at server: " + fileName)
-      //const imageLink = `https://easylaunchnftdospace1.fra1.digitaloceanspaces.com/Jobzura/${fileName}`;
-      //return imageLink;
-    }) //.promise();
-
-    const imageLink = `https://easylaunchnftdospace1.fra1.digitaloceanspaces.com/Jobzura/${fileName}`;
-    return imageLink;
-
-  } catch {
-    console.log(e);
-    res.status(500).send("Error uploading file");
-  } 
-}
-
-
-async function SaveJobToFirebaseDB(seller, title, price, description, currencyTicker, imageLinks){
+async function SaveJobToFirebaseDB(category, imageLinks, seller, skills, description, descriptionBasic, currencyTicker, price, timeToDeliver, customTimeToDeliver, descriptionStandard, currencyTickerStandard, priceStandard, timeToDeliverStandard, customTimeToDeliverStandard, descriptionPremium, currencyTickerPremium, pricePremium, timeToDeliverPremium, customTimeToDeliverPremium, title, jobId){
 
   console.log("SaveJobToFirebaseDB...");
 
-  const epoch = new Date().getTime().toString();
 
-  const aJob = {
-    SellerWallet: seller,
-    Title: title,
-    Price: price,
-    index: epoch,
-    Description: description,
-    CurrencyTicker: currencyTicker,
-    HashOfDescription: sha256(description),
-    ImageLinks: imageLinks,
-    Created: new Date(),
-    Rating: []
+  if(jobId == ""){
+
+    const epoch = new Date().getTime().toString();
+
+    const aJob = {
+      SellerWallet: seller,
+      Title: title,
+      /// HashOfDescription: sha256(description),
+      Category: category,
+      Skills: skills,
+      Created: new Date(),
+      LastChanged: new Date(),
+      Description: description,
+
+      DescriptionBasic: descriptionBasic,
+      HashOfDescriptionBasic: sha256(descriptionBasic),
+      CurrencyTicker: currencyTicker,
+      Price: price,
+      TimeToDeliver: timeToDeliver,
+      CustomTimeToDeliver: customTimeToDeliver,
+
+      DescriptionStandard: descriptionStandard,
+      HashOfDescriptionStandard: sha256(descriptionStandard),
+      CurrencyTickerStandard: currencyTickerStandard,
+      PriceStandard: priceStandard,
+      TimeToDeliverStandard: timeToDeliverStandard,
+      CustomTimeToDeliverStandard: customTimeToDeliverStandard,
+
+      DescriptionPremium: descriptionPremium,
+      HashOfDescriptionPremium: sha256(descriptionPremium),
+      CurrencyTickerPremium: currencyTickerPremium,
+      PricePremium: pricePremium,
+      TimeToDeliverPremium: timeToDeliverPremium,
+      CustomTimeToDeliverPremium: customTimeToDeliverPremium,
+
+      ImageLinks: imageLinks,
+      RatingsSum: 0,
+      RatingsCounter: 0,
+      State: "active",
+      //id_: epoch,
+      //index: epoch,
+      JobId: epoch,
+    }
+
+    // await admin.firestore().collection('uploads').doc('jobs').collection(seller).doc(epoch.toString()).set(aJob, { merge: false });
+    await admin.firestore().collection('jobs').doc(epoch).set(aJob, { merge: false });
+
+  } else {
+
+    const aJob = {
+      SellerWallet: seller,
+      Title: title,
+      //HashOfDescription: sha256(description),
+      Category: category,
+      Skills: skills,
+      LastChanged: new Date(),
+      Description: description,
+
+      DescriptionBasic: descriptionBasic,
+      HashOfDescriptionBasic: sha256(descriptionBasic),
+      CurrencyTicker: currencyTicker,
+      Price: price,
+      TimeToDeliver: timeToDeliver,
+      CustomTimeToDeliver: customTimeToDeliver,
+
+      DescriptionStandard: descriptionStandard,
+      HashOfDescriptionStandard: sha256(descriptionStandard),
+      CurrencyTickerStandard: currencyTickerStandard,
+      PriceStandard: priceStandard,
+      TimeToDeliverStandard: timeToDeliverStandard,
+      CustomTimeToDeliverStandard: customTimeToDeliverStandard,
+
+      DescriptionPremium: descriptionPremium,
+      HashOfDescriptionPremium: sha256(descriptionPremium),
+      CurrencyTickerPremium: currencyTickerPremium,
+      PricePremium: pricePremium,
+      TimeToDeliverPremium: timeToDeliverPremium,
+      CustomTimeToDeliverPremium: customTimeToDeliverPremium,
+
+      ImageLinks: imageLinks,
+    }
+
+    await admin.firestore().collection('jobs').doc(jobId).set(aJob, { merge: true });
   }
-  
-  // await admin.firestore().collection('uploads').doc('jobs').collection(seller).doc(epoch.toString()).set(aJob, { merge: false });
-  await admin.firestore().collection('jobs').doc(epoch).set(aJob, { merge: false });
+
+
 }
 

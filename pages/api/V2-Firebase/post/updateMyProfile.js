@@ -14,7 +14,7 @@ import {
   UpdateUserProfileSkillsToMoralisDB,
 } from "../../../JS/DB-pushFunctions.js";
 */
-import {GetWalletFromAlias} from '../../../../JS/DB-cloudFunctions';
+import {GetWalletFromAlias} from '../../../../JS/auth/GetWalletFromAlias-Firebase';
 import {ValidateAndReturnMessage, AnyEmpty} from "../../../../JS/auth/BackendValidation";
 import admin from "../../../../_firebase-admin";
 
@@ -49,14 +49,18 @@ apiRoute.post(async (req, res) => {
 
   const UserWallet = ValidateAndReturnMessage(address, req.body.message_UserWallet[0].toString(), req.body.signature_UserWallet[0].toString()).toLowerCase();
   const Operation = ValidateAndReturnMessage(address, req.body.message_O[0].toString(), req.body.signature_O[0].toString());
-  //const objectId = ValidateAndReturnMessage(address, req.body.message_objectId[0].toString(), req.body.signature_objectId[0].toString());
+
 
   // check that the address is associated with the original address (seller)
-  const orgWallet = await GetWalletFromAlias(address.toLowerCase());
-  console.log(`orgWallet: ${orgWallet}`);
+  console.log("address.toLowerCase():")
+  console.log(address.toLowerCase());
+  
+  const walletAssociatedWithAliasInDB = await GetWalletFromAlias(address.toLowerCase());                                                                        // check Alias
+  console.log(`walletAssociatedWithAliasInDB:`);
+  console.log(walletAssociatedWithAliasInDB);
 
   // if not - terminate
-  if(orgWallet != UserWallet){
+  if(walletAssociatedWithAliasInDB != UserWallet){
     res.status(421).end("signatures are not from an Alias associated with this seller");
   }
 

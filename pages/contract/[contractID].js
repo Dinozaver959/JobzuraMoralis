@@ -57,14 +57,20 @@ function ContractDetails() {
     return (
       <Fragment>
         <div className="sectionMain">
-          <h2 className="address">Contract ID : {contractDetails[0].name.JobId}</h2>
 
-          <h2 className="address">Title : {contractDetails[0].name.Title}</h2>
-          <h2 className="address">Description : {contractDetails[0].name.Description}</h2>
-          <h2 className="address">Price : {contractDetails[0].name.Price}</h2>
-          <h2 className="address">Buyer : {contractDetails[0].name.BuyerWallet}</h2>
-          <h2 className="address">Seller : {contractDetails[0].name.SellerWallet}</h2>
-          <h2 className="address">State : {contractDetails[0].name.State}</h2>
+          <br></br>
+          <h1>Need to improve UI for this page....</h1>
+          <br></br>
+
+
+          <h2 className="address">Contract ID : {contractDetails[0]?.name.JobId}</h2>
+
+          <h2 className="address">Title : {contractDetails[0]?.name.Title}</h2>
+          <h2 className="address">Description : {contractDetails[0]?.name.Description}</h2>
+          <h2 className="address">Price : {contractDetails[0]?.name.Price}</h2>
+          <h2 className="address">Buyer : {contractDetails[0]?.name.BuyerWallet}</h2>
+          <h2 className="address">Seller : {contractDetails[0]?.name.SellerWallet}</h2>
+          <h2 className="address">State : {contractDetails[0]?.name.State}</h2>
 
           {/*
             add a cancel contract button (available only before seller accepts)  - initially visible to all (then only the connected wallet that is buyer of the contract)

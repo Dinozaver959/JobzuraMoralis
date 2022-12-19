@@ -139,7 +139,7 @@ function OrdersRowsSeller(props) {
               {
                 showModal && agreement.name.State === "complete" ? (
                   <div className="moreOptionDropdown">
-                    <Link href={`/submit-review?jobID=${agreement.name.Index}`}>
+                    <Link href={`/submit-review?contractID=${agreement.name.ChainId}_${agreement.name.Index}`}>
                       <span>Writing a review</span>
                     </Link>
                   </div>

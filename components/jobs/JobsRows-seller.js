@@ -1,14 +1,21 @@
 import { useRef, useState } from "react";
 import { FiMoreVertical } from "react-icons/fi";
+import axios from "axios";
 import Link from "next/link";
+import Image from "next/image";
 import Button from "../ui/Button";
 import useOutsideClick from "../useOutsideClick";
+import { SignMessageWithAlias } from "../../JS/auth/messageSigning";
 
 function JobsRowsSeller(props) {
   const { agreement } = props;
   const [showModal, setShowModal] = useState(false);
 
-  const jobLink = agreement.name.JobId;
+  const seller = agreement.name.SellerWallet;
+  const jobId = agreement.name.JobId;
+  const imageLinks = agreement.name.ImageLinks;
+  const title = agreement.name.Title;
+  const description = agreement.name.Description;
 
   const handleModal = () => {
     setShowModal(!showModal);
@@ -21,25 +28,49 @@ function JobsRowsSeller(props) {
 
 
   const deleteJob = async () => {
-    const response = await fetch(`/api/general/deleteJob?jobID=${agreement.name.JobId}`);
-    const data = await response.json();
-    console.log(data);
+
+    var formData = new FormData();
+
+    const signedMessage_seller = await SignMessageWithAlias(seller);
+    formData.append("address", signedMessage_seller.address);
+    formData.append("message_seller", signedMessage_seller.message);
+    formData.append("signature_seller", signedMessage_seller.signature);
+
+    const signedMessage_jobId = await SignMessageWithAlias(jobId);
+    formData.append("message_jobId", signedMessage_jobId.message);
+    formData.append("signature_jobId", signedMessage_jobId.signature);
+
+    axios.post("/api/V2-Firebase/post/deleteJob", formData)
+    .then((res) => {
+      if (res.status == 201 ) console.log("data successfully updated!");
+    })
+    .catch((err) => {
+      console.log("data profile failed to update ...");
+      console.log(err);
+    });
+
+
+    //const response = await fetch(`/api/general/deleteJob?jobID=${jobId}`);
+    //const data = await response.json();
+    //console.log(data);
+
   };
+
+  console.log("agreement:")
+  console.log(agreement)
 
   return (
     <tr>
       <td align="left">
-        <Link href={`/job/${agreement.name.JobId}`}>
+        <Link href={`/job/${jobId}`}>
           <div className="jobDetails" style={{ cursor: 'pointer'}}>
-            {agreement.name.ImageLinks?.length > 0 ? (
-              <img 
-                src={agreement?.name?.ImageLinks} 
+            {imageLinks?.length > 0 ? (
+              <Image 
+                src={imageLinks} 
                 alt="job" 
-                style={{
-                  width: '55px',
-                  height: '42px',
-                  marginRight: '10px',
-                }}
+                width={55}
+                height={42}              
+                style={{ marginRight: '10px' }}
               />
               ) : (
                 <div
@@ -51,8 +82,8 @@ function JobsRowsSeller(props) {
               )
             }
             <div className="jobSortInfo">
-              <h3>{agreement.name.Title}</h3>
-              <p>{agreement.name.Description}</p>
+              <h3>{title}</h3>
+              <p>{description}</p>
             </div>
           </div>
         </Link>
@@ -76,8 +107,8 @@ function JobsRowsSeller(props) {
             alignItems: 'center',
           }}
         >
-          <Button classes="button dark" link={`/edit-job/${jobLink}`}>Edit Job</Button>
-          {agreement.id && (
+          <Button classes="button dark" link={`/edit-job/${jobId}`}>Edit Job</Button>
+          {jobId && (
             <Button onClick={handleModal} classes="button bordered default moreButton ml-10">
               <FiMoreVertical
                 style={{
@@ -91,7 +122,7 @@ function JobsRowsSeller(props) {
                   <span
                     onClick={() => {
                       deleteJob();
-                      console.log(`delete ${agreement.name.JobId}`);
+                      console.log(`delete ${jobId}`);
                     }}
                     >Delete job</span>
                 </div>
