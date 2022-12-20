@@ -159,7 +159,7 @@ async function SaveJobToFirebaseDB(category, imageLinks, seller, skills, descrip
     const aJob = {
       SellerWallet: seller,
       Title: title,
-      /// HashOfDescription: sha256(description),
+      HashOfDescription: sha256(description),
       Category: category,
       Skills: skills,
       Created: new Date(),
@@ -204,7 +204,7 @@ async function SaveJobToFirebaseDB(category, imageLinks, seller, skills, descrip
     const aJob = {
       SellerWallet: seller,
       Title: title,
-      //HashOfDescription: sha256(description),
+      HashOfDescription: sha256(description),
       Category: category,
       Skills: skills,
       LastChanged: new Date(),

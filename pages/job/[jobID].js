@@ -180,7 +180,7 @@ function JobDetails() {
                         "ETH", // expected values: `ETH`, `USDC` - just means the native currency and not ERC20 .... needs better naming for sure
                         await GetUserReferralChain((await GetWallet_NonMoralis())[0]), // referrerAddress
                         (jobTimeToDeliverBasic!=='custom') ? jobTimeToDeliverBasic : jobCustomTimeToDeliverBasic, // 0 for testing only, real value more like:  24 * 7, // the value should be in hours - take 7 days for now, it should be read from the job (also depends on basic, standard, premium)
-                        sha256(jobDescriptionBasic),
+                        sha256(jobDescription),
                         Math.floor(Date.now() / 1000 + 365 * 24 * 60 * 60), // make it valid far in the future (e.g. 1 y or something like this...)
                         jobSellerAddress, // get the seller wallet and put it in array
                         PayzuraCentealizedArbiter // Payzura centralized wallet for now
@@ -221,7 +221,7 @@ function JobDetails() {
                         "ETH", // expected values: `ETH`, `USDC` - just means the native currency and not ERC20 .... needs better naming for sure
                         await GetUserReferralChain((await GetWallet_NonMoralis())[0]), // referrerAddress
                         (jobTimeToDeliverStandard!=='custom') ? jobTimeToDeliverStandard : jobCustomTimeToDeliverStandard, // 0 for testing only, real value more like:  24 * 7, // the value should be in hours - take 7 days for now, it should be read from the job (also depends on basic, standard, premium)
-                        sha256(jobDescriptionStandard),
+                        sha256(jobDescription),
                         Math.floor(Date.now() / 1000 + 365 * 24 * 60 * 60), // make it valid far in the future (e.g. 1 y or something like this...)
                         jobSellerAddress, // get the seller wallet and put it in array
                         PayzuraCentealizedArbiter // Payzura centralized wallet for now
@@ -262,7 +262,7 @@ function JobDetails() {
                         "ETH", // expected values: `ETH`, `USDC` - just means the native currency and not ERC20 .... needs better naming for sure
                         await GetUserReferralChain((await GetWallet_NonMoralis())[0]), // referrerAddress
                         (jobTimeToDeliverPremium!=='custom') ? jobTimeToDeliverPremium : jobCustomTimeToDeliverPremium, // 0 for testing only, real value more like:  24 * 7, // the value should be in hours - take 7 days for now, it should be read from the job (also depends on basic, standard, premium)
-                        sha256(jobDescriptionPremium),
+                        sha256(jobDescription),
                         Math.floor(Date.now() / 1000 + 365 * 24 * 60 * 60), // make it valid far in the future (e.g. 1 y or something like this...)
                         jobSellerAddress, // get the seller wallet and put it in array
                         PayzuraCentealizedArbiter // Payzura centralized wallet for now
